@@ -75,7 +75,20 @@ footer { color:var(--muted); font-size:12px; padding:20px 28px; text-align:cente
       <input id="attack" type="datetime-local" value="" title="optional: restrict the resolution window">
       <button id="go" class="primary">Compromise</button>
     </div>
+    <div class="row" id="incidents" style="margin-top:10px"></div>
     <p class="muted" id="status" style="margin:10px 0 0"></p>
+  </div>
+
+  <div class="panel">
+    <h2>Worm scenario <span class="muted">(multi-compromise union via <code>algo.MSpaths</code>)</span></h2>
+    <div class="row">
+      <label>compromised packages</label>
+      <input id="worm" list="pkgs" value="rc, colors" style="width:300px" placeholder="rc, colors, ...">
+      <label>hops</label>
+      <select id="wormhops"><option>3</option><option selected>5</option><option>7</option></select>
+      <button id="wormgo" class="primary">Union blast radius</button>
+    </div>
+    <p class="muted" id="wormstatus" style="margin:10px 0 0"></p>
   </div>
 
   <div id="results" style="display:none">
@@ -167,6 +180,44 @@ async function compromise(){
 }
 $('go').addEventListener('click', compromise);
 $('pkg').addEventListener('keydown',e=>{ if(e.key==='Enter') compromise(); });
+
+async function loadIncidents(){
+  try{
+    const r=await fetch('/api/incidents'); const d=await r.json();
+    $('incidents').innerHTML=Object.entries(d.incidents).map(([k,v])=>
+      `<button class="tag" data-spec="${v.name}" title="${v.incident}">${v.name} — ${v.incident}</button>`).join('');
+    document.querySelectorAll('#incidents .tag').forEach(b=>b.addEventListener('click',async e=>{
+      const spec=b.dataset.spec; const [name,ver]=spec.split('@');
+      $('pkg').value=name;
+      const r=await fetch('/api/versions/'+encodeURIComponent(name));
+      const vd=await r.json();
+      $('ver').innerHTML=vd.versions.map(x=>`<option value="${x.version}">${x.version}</option>`).join('');
+      $('ver').value=ver;
+      compromise();
+    }));
+  }catch(e){}
+}
+loadIncidents();
+
+async function worm(){
+  const pkgs=$('worm').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(!pkgs.length) return;
+  $('wormgo').disabled=true; $('wormstatus').textContent='Union traversal over '+pkgs.join(', ')+'\u2026';
+  $('wormstatus').className='loading';
+  try{
+    const r=await fetch('/api/multi-compromise',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({packages:pkgs,maxLen:parseInt($('wormhops').value)})});
+    const d=await r.json();
+    const res=d.result;
+    $('wormstatus').textContent=res
+      ? `Union blast radius: ${res.exposed_version_count} exposed versions, ${res.exposed_package_count} packages, services exposed: ${res.exposed_services.join(', ') || 'none'}.`
+      : 'no packages found in universe';
+    $('wormstatus').className='muted';
+  }catch(err){ $('wormstatus').textContent='Error: '+err; $('wormstatus').className='muted'; }
+  finally{ $('wormgo').disabled=false; }
+}
+$('wormgo').addEventListener('click', worm);
+$('worm').addEventListener('keydown',e=>{ if(e.key==='Enter') worm(); });
 
 function render(d){
   const br=d.blast_radius;

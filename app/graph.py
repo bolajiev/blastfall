@@ -64,8 +64,17 @@ def _post_raw(body):
             "Content-Type": "application/json",
         },
     )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        return json.loads(resp.read().decode())
+    import time
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as e:
+            if e.code in (408, 429, 500, 503):
+                time.sleep(1 * (attempt + 1))
+                continue
+            raise
+    raise RuntimeError("repeated HydraDB failures")
 
 
 def search_packages(prefix, limit=20):
@@ -218,6 +227,61 @@ def exposed_services(compromised_spec, max_len=8):
     ids = _reachable_ids(vid, max_len, "incoming")
     services = sorted(rev.get(i)[4:] for i in ids if rev.get(i, "").startswith("srv:"))
     return {"services": services, "maxLen": max_len}
+
+
+def multi_compromise(package_names, max_len=5, path_count=100000):
+    """Union blast radius across several compromised packages (worm scenario).
+
+    Uses `algo.MSpaths`: the sources are resolved in one batched call through
+    the property index on Version.name, avoiding a client-side query per
+    package. Sources resolve to every version of each named package, so this is
+    the exposure *upper bound* — any app that could resolve any version of a
+    compromised package is counted.
+    """
+    _, rev = _load_idmap()
+    names = [n for n in package_names if lookup_package(n) is not None]
+    if not names:
+        return None
+    ids = set()
+    services = set()
+    packages = set()
+    cursor = None
+    query_id = None
+    q = (
+        "CALL algo.MSpaths({sourceLabel: 'Version', sourceProperty: 'name', "
+        "sourceValues: " + json.dumps(names) + ", relTypes: ['DEPENDS_ON'], "
+        "maxLen: %d, relDirection: 'incoming', pathCount: %d, resultLimit: 100000}) "
+        "YIELD path RETURN path" % (max_len, path_count)
+    )
+    while True:
+        body = {"cell_id": "cell-0", "query": q}
+        if cursor is not None:
+            body["cursor"] = cursor
+        if query_id:
+            body["query_id"] = query_id
+        r = _post_raw(body)
+        query_id = r.get("query_id", query_id)
+        for row in r.get("rows", []):
+            for node in row[0]["value"]["nodes"]:
+                i = node["id"]
+                ids.add(i)
+                key = rev.get(i)
+                if not key:
+                    continue
+                if key.startswith("srv:"):
+                    services.add(key[4:])
+                elif not key.startswith("pkg:"):
+                    packages.add(key.split("@")[0])
+        cursor = r.get("next_cursor")
+        if not cursor or not r.get("rows"):
+            break
+    return {
+        "packages": names,
+        "exposed_version_count": len(ids),
+        "exposed_package_count": len(packages),
+        "exposed_services": sorted(services),
+        "maxLen": max_len,
+    }
 
 
 def subgraph(spec, max_len=6, path_count=200):

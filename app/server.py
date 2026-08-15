@@ -20,6 +20,20 @@ class Compromise(BaseModel):
     attackTime: str = ""
 
 
+class MultiCompromise(BaseModel):
+    packages: list[str]
+    maxLen: int = 5
+
+
+FEATURED_INCIDENTS = {
+    "ms": {"name": "ms@2.1.3", "incident": "tiny leaf most of the ecosystem pulls in"},
+    "rc": {"name": "rc@1.2.8", "incident": "2021 hijack (ua-parser-js / coa campaign)"},
+    "colors": {"name": "colors@1.4.0", "incident": "2022 author sabotage (with faker)"},
+    "event-stream": {"name": "event-stream@4.0.1", "incident": "2018 targeted Copay attack"},
+    "left-pad": {"name": "left-pad@1.3.0", "incident": "2016 un-publish — the blast-radius lesson"},
+}
+
+
 @app.get("/")
 def index():
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "index.html"))
@@ -58,3 +72,13 @@ def compromise(body: Compromise):
         "resolution_window": window,
         "subgraph": sub,
     }
+
+
+@app.get("/api/incidents")
+def incidents():
+    return {"incidents": FEATURED_INCIDENTS}
+
+
+@app.post("/api/multi-compromise")
+def multi(body: MultiCompromise):
+    return {"result": graph.multi_compromise(body.packages, max_len=body.maxLen)}

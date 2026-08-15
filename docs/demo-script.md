@@ -36,17 +36,21 @@ Temporal versioning in HydraDB makes this a WHERE clause, not a pipeline."
 edit-distance-one neighbors in the universe. And packages that share a
 maintainer are the next wave to watch — all single-hop traversals."
 
-### 2:15-2:45 — Why HydraDB
+### 2:15-2:45 — The worm scenario (MSpaths)
+"Now the real attack: TanStack's CI was breached and 84 artifacts went out
+across 42 packages in six minutes — that's not one package, it's a set. The
+union blast radius is one batched `algo.MSpaths` call: sources resolved
+through the property index, one traversal, no client-side fan-out. Two
+compromised packages cover 2,000 exposed versions and 82 packages here."
+
+### 2:45-3:00 — Why HydraDB & wrap
 "Blast radius at six hops returns in well under a second on this graph, because
 it's a graph traversal — not a similarity search. The graph model is versioned
 and temporal: every `DEPENDS_ON` edge is a resolved version, every version has a
 publish time. Storage is object-backed and cheap. What would this be without
-HydraDB? A pile of per-package API calls and a hand-rolled closure — slower, and
-with none of the time-travel."
-
-### 2:45-3:00 — Wrap
-"Blastfall. Compromised at 09:00, exposed by 09:06. Repo, attribution, and the
-full model are on GitHub."
+HydraDB? A pile of per-package API calls and a hand-rolled closure — slower,
+and with none of the time-travel. Blastfall. Compromised at 09:00, exposed by
+09:06. Repo, attribution, and the full model are on GitHub."
 
 ---
 

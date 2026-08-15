@@ -18,10 +18,17 @@ HydraDB and answers it with HydraDB's native graph traversal:
   compromised `name@version`, in k hops
 - **Service exposure** — which of *your* services resolve to the compromised
   version, directly or transitively
+- **Worm scenario** — the union blast radius across many compromised packages at
+  once via `algo.MSpaths` (sources resolved in one batched call through the
+  property index, not a client-side query per package)
 - **Resolution window** — which releases pulled in the bad version between when
   it was published and when the attack was discovered
 - **Shared maintainers** — other packages maintained by the same people
 - **Typosquats** — close-name impostors that sit adjacent to popular packages
+
+Try the featured incidents preset in the UI: `rc@1.2.8` (2021 ua-parser-js
+hijack), `colors@1.4.0` (2022 sabotage), `event-stream@4.0.1` (2018 Copay
+attack), or the multi-compromise worm panel (`rc, colors`).
 
 ## How it works
 
@@ -93,11 +100,15 @@ python3 -m uvicorn app.server:app --port 8123
 |---|---|
 | `GET /api/packages?q=lod` | package prefix search |
 | `GET /api/versions/express` | versions + publish dates |
+| `GET /api/incidents` | featured real-incident presets |
 | `POST /api/compromise` | simulate a compromise: `{name, version, maxLen, attackTime?}` |
+| `POST /api/multi-compromise` | worm scenario: `{packages: [...], maxLen}` — union blast radius via `algo.MSpaths` |
 
 The `POST /api/compromise` response includes the exposure report, direct
 dependents, resolution window, typosquats, shared maintainers, and a sampled
-subgraph for visualization.
+subgraph for visualization. `POST /api/multi-compromise` uses HydraDB's
+`algo.MSpaths` so the union traversal across all compromised packages happens
+server-side in one batched call.
 
 ## Repository layout
 
