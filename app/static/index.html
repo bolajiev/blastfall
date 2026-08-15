@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blastfall — supply-chain blast radius</title>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+:root {
+  --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3;
+  --muted:#8b949e; --accent:#58a6ff; --danger:#f85149; --warn:#d29922;
+  --ok:#3fb950; --purple:#bc8cff;
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+       background:var(--bg); color:var(--text); font-size:14px; }
+header { padding:18px 28px; border-bottom:1px solid var(--border);
+         background:linear-gradient(90deg,#161b22,#0d1117); }
+header h1 { margin:0; font-size:20px; letter-spacing:.5px; }
+header h1 .dot { color:var(--danger); }
+header p { margin:4px 0 0; color:var(--muted); font-size:12px; }
+main { max-width:1200px; margin:0 auto; padding:24px; }
+.panel { background:var(--panel); border:1px solid var(--border); border-radius:10px;
+         padding:18px; margin-bottom:20px; }
+.panel h2 { margin:0 0 12px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+input,select,button { background:#0d1117; color:var(--text); border:1px solid var(--border);
+         border-radius:6px; padding:9px 12px; font-family:inherit; font-size:14px; }
+input:focus,select:focus { outline:none; border-color:var(--accent); }
+button.primary { background:var(--danger); border-color:var(--danger); color:#fff; font-weight:600; cursor:pointer; }
+button.primary:hover { filter:brightness(1.1); }
+button.primary:disabled { opacity:.5; cursor:not-allowed; }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.row label { color:var(--muted); font-size:12px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+.card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px; }
+.card .num { font-size:26px; font-weight:700; }
+.card .lbl { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
+.card.danger .num { color:var(--danger); }
+.card.ok .num { color:var(--ok); }
+.card.warn .num { color:var(--warn); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+th { color:var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+.tag { display:inline-block; background:rgba(88,166,255,.12); color:var(--accent);
+       border:1px solid rgba(88,166,255,.3); border-radius:999px; padding:2px 10px; margin:2px; font-size:12px; }
+.tag.danger { background:rgba(248,81,73,.12); color:var(--danger); border-color:rgba(248,81,73,.3); }
+.tag.ok { background:rgba(63,185,80,.12); color:var(--ok); border-color:rgba(63,185,80,.3); }
+.chips { max-height:180px; overflow:auto; }
+#graph { width:100%; height:520px; border:1px solid var(--border); border-radius:8px; background:#0a0d13; }
+.muted { color:var(--muted); }
+.loading { color:var(--warn); }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media (max-width:900px){ .grid2 { grid-template-columns:1fr; } }
+code { background:var(--bg); padding:1px 5px; border-radius:4px; color:var(--purple); }
+footer { color:var(--muted); font-size:12px; padding:20px 28px; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Blastfall<span class="dot">.</span> <span style="color:var(--muted);font-weight:400;font-size:13px">supply-chain blast radius on the HydraDB versioned dependency graph</span></h1>
+  <p>Pick a package version, simulate a compromise, and see who is transitively exposed &mdash; before the next bad release lands.</p>
+</header>
+<main>
+  <div class="panel">
+    <h2>Simulate a compromise</h2>
+    <div class="row">
+      <label>package</label>
+      <input id="pkg" list="pkgs" placeholder="express" style="width:240px">
+      <datalist id="pkgs"></datalist>
+      <label>version</label>
+      <select id="ver" style="width:160px"></select>
+      <label>hops</label>
+      <select id="hops"><option>3</option><option>4</option><option>5</option><option selected>6</option></select>
+      <label>attack time (UTC)</label>
+      <input id="attack" type="datetime-local" value="" title="optional: restrict the resolution window">
+      <button id="go" class="primary">Compromise</button>
+    </div>
+    <p class="muted" id="status" style="margin:10px 0 0"></p>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="panel">
+      <h2>Exposure report</h2>
+      <div class="cards">
+        <div class="card danger"><div class="num" id="c-versions">-</div><div class="lbl">exposed versions</div></div>
+        <div class="card danger"><div class="num" id="c-packages">-</div><div class="lbl">exposed packages</div></div>
+        <div class="card ok"><div class="num" id="c-services">-</div><div class="lbl">services exposed</div></div>
+        <div class="card warn"><div class="num" id="c-direct">-</div><div class="lbl">direct dependents</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Exposure map <span class="muted">(sampled subgraph of the reverse-dependency closure)</span></h2>
+      <div id="graph"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Exposed services</h2>
+        <div class="chips" id="services"></div>
+      </div>
+      <div class="panel">
+        <h2>Typosquats near this package</h2>
+        <div class="chips" id="typos"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Direct dependents <span class="muted">(resolved to this exact version)</span></h2>
+        <div style="max-height:300px;overflow:auto"><table><thead><tr><th>package</th><th>version</th><th>published</th></tr></thead><tbody id="dependents"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h2>Resolution window <span class="muted">(dependents released between compromise and attack time)</span></h2>
+        <div style="max-height:300px;overflow:auto"><table><thead><tr><th>package</th><th>version</th><th>published</th></tr></thead><tbody id="window"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Shared maintainers <span class="muted">(other packages maintained by the same people)</span></h2>
+      <div id="mnts"></div>
+    </div>
+  </div>
+</main>
+<footer>Blastfall &middot; built on <a href="https://github.com/hydra-db/hydradb" style="color:var(--accent)">HydraDB</a> &middot; Hack Hydra 2026</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+let net=null;
+
+$('pkg').addEventListener('input', async e=>{
+  const q=e.target.value.trim();
+  if(q.length<2) return;
+  const r=await fetch('/api/packages?q='+encodeURIComponent(q)+'&limit=20');
+  const d=await r.json();
+  $('pkgs').innerHTML=d.packages.map(p=>`<option value="${p}">`).join('');
+});
+
+$('pkg').addEventListener('change', async e=>{
+  const name=e.target.value.trim();
+  if(!name) return;
+  const r=await fetch('/api/versions/'+encodeURIComponent(name));
+  const d=await r.json();
+  const opts=d.versions.map(v=>`<option value="${v.version}">${v.version}</option>`);
+  $('ver').innerHTML=opts;
+  if(d.versions.length) $('ver').selectedIndex=0;
+});
+
+async function compromise(){
+  const name=$('pkg').value.trim(), version=$('ver').value;
+  const hops=parseInt($('hops').value);
+  const attack=$('attack').value ? new Date($('attack').value).toISOString() : '';
+  if(!name||!version) return;
+  $('go').disabled=true; $('status').textContent='Traversing the graph\u2026';
+  $('status').className='loading';
+  try{
+    const r=await fetch('/api/compromise',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,version,maxLen:hops,attackTime:attack})});
+    const d=await r.json();
+    if(d.error){ $('status').textContent=d.error; $('status').className='muted'; return; }
+    render(d);
+    $('results').style.display='block';
+    $('status').textContent=`${name}@${version} compromised.`;
+    $('status').className='muted';
+  }catch(err){ $('status').textContent='Error: '+err; $('status').className='muted'; }
+  finally{ $('go').disabled=false; }
+}
+$('go').addEventListener('click', compromise);
+$('pkg').addEventListener('keydown',e=>{ if(e.key==='Enter') compromise(); });
+
+function render(d){
+  const br=d.blast_radius;
+  $('c-versions').textContent=br.exposed_version_count;
+  $('c-packages').textContent=br.exposed_package_count;
+  $('c-services').textContent=br.exposed_services.length;
+  $('c-direct').textContent=d.direct_dependents.total;
+
+  $('services').innerHTML=br.exposed_services.length
+    ? br.exposed_services.map(s=>`<span class="tag danger">${s}</span>`).join('')
+    : '<span class="muted">no services exposed</span>';
+
+  $('typos').innerHTML=d.typosquats.length
+    ? d.typosquats.map(t=>`<span class="tag">${t}</span>`).join('')
+    : '<span class="muted">no close-name typosquats in this universe</span>';
+
+  $('dependents').innerHTML=d.direct_dependents.rows.map(rw=>
+    `<tr><td>${rw.name}</td><td>${rw.version}</td><td class="muted">${rw.publishedAt.slice(0,10)}</td></tr>`).join('');
+
+  $('window').innerHTML=d.resolution_window.length
+    ? d.resolution_window.map(rw=>`<tr><td>${rw.name}</td><td>${rw.version}</td><td class="muted">${rw.publishedAt.slice(0,10)}</td></tr>`).join('')
+    : '<tr><td colspan=3 class="muted">no versions resolved to it in the given window</td></tr>';
+
+  $('mnts').innerHTML=Object.keys(d.shared_maintainers).length
+    ? Object.entries(d.shared_maintainers).map(([m,pkgs])=>
+        `<div style="margin:8px 0"><b>${m}</b><div>${pkgs.map(p=>`<span class="tag">${p}</span>`).join('')}</div></div>`).join('')
+    : '<span class="muted">no shared maintainers found</span>';
+
+  renderGraph(d.subgraph);
+}
+
+function renderGraph(sub){
+  if(!sub) return;
+  const nodeColors={compromised:'#f85149',service:'#3fb950',version:'#58a6ff'};
+  const nodes=new vis.DataSet(sub.nodes.map(n=>({
+    id:n.id,label:n.label,color:{background:nodeColors[n.kind]||'#58a6ff',border:nodeColors[n.kind]||'#58a6ff'},
+    font:{color:'#e6edf3',size:11},shape:'dot',size:n.kind==='compromised'?20:10,
+    title:n.label
+  })));
+  const edges=new vis.DataSet(sub.edges.map(e=>({from:e.src,to:e.dst,arrows:'to',color:{color:'#30363d',highlight:'#f85149'}})));
+  const options={physics:{enabled:true,barnesHut:{gravitationalConstant:-4000,centralGravity:0.15}},
+    interaction:{hover:true},height:'520px'};
+  if(net) net.destroy();
+  net=new vis.Network($('graph'),{nodes,edges},options);
+}
+</script>
+</body>
+</html>
