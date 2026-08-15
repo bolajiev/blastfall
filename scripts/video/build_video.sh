@@ -5,8 +5,8 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-COLD_MS=20000
-CLOSE_MS=16000
+COLD_MS=4000
+CLOSE_MS=8000
 
 # --- cold open card ---
 printf '%s\n' \
@@ -24,12 +24,12 @@ ffmpeg -y -v error -f lavfi -i color=c=0x0d1117:s=1920x1080:d=${COLD_MS}ms \
 ffmpeg -y -v error -ss 2.0 -i terminal-demo.webm -vf "scale=1920:1080:flags=lanczos" \
   -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg2-terminal.mp4
 
-# --- UI take, slowed ~0.9x ---
-ffmpeg -y -v error -i ui-demo.mp4 -filter_complex "[0:v]setpts=1/0.9*PTS[v]" -map "[v]" \
+# --- UI take (fresh from the latest capture), slowed ~0.9x, skip lead-in ---
+ffmpeg -y -v error -ss 0.5 -i ui-demo.webm -filter_complex "[0:v]setpts=1/0.9*PTS[v]" -map "[v]" \
   -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg3-ui.mp4
 
 # --- closing: the last query result (clean), then a callout card ---
-ffmpeg -y -v error -loop 1 -i worm-result.png -t 7000ms -r 60 \
+ffmpeg -y -v error -loop 1 -i worm-result.png -t 5000ms -r 60 \
   -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg4a-result.mp4
 ffmpeg -y -v error -f lavfi -i color=c=0x0d1117:s=1920x1080:d=${CLOSE_MS}ms \
   -vf "drawtext=text='Blastfall':fontfile=${FONT}:fontcolor=0xf85149:fontsize=72:x=(w-text_w)/2:y=320, \
@@ -85,10 +85,17 @@ with open("captions.srt", "w") as f:
 print(f"cold={cold:.2f} term={term:.2f} ui={ui:.2f} result={close_a:.2f} card={close_b:.2f} total={t5:.2f}")
 PY
 
-# --- concat + burn captions (small, semi-transparent lower-third) ---
+# --- concat (voiceover carries the narration; no burned-in captions) ---
 printf "file 'seg1-cold.mp4'\nfile 'seg2-terminal.mp4'\nfile 'seg3-ui.mp4'\nfile 'seg4a-result.mp4'\nfile 'seg4b-card.mp4'\n" > list.txt
 ffmpeg -y -v error -f concat -safe 0 -i list.txt \
-  -vf "subtitles=captions.srt:force_style='FontName=DejaVu Sans,FontSize=17,PrimaryColour=&H00FFFFFF,BorderStyle=3,BackColour=&HAA000000,Alignment=2,MarginV=118'" \
-  -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p blastfall-demo.mp4
+  -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p blastfall-silent.mp4
 
-echo "done -> blastfall-demo.mp4"
+# --- voiceover ---
+echo "generating voiceover..."
+python3 voice.py
+
+# --- mux ---
+ffmpeg -y -v error -i blastfall-silent.mp4 -i voice-track.m4a \
+  -c:v copy -c:a aac -b:a 128k -shortest blastfall-demo.mp4
+
+echo "done -> blastfall-demo.mp4 (with voiceover)"

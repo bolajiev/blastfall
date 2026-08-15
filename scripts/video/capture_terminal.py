@@ -14,10 +14,8 @@ OUT_DIR = Path(__file__).parent
 TTYD_URL = os.environ.get("TTYD_URL", "http://127.0.0.1:7777")
 
 COMMANDS = [
-    ("echo 'Blastfall: the real npm dependency graph in HydraDB.'", 1.2),
-    ("echo 'Every version, publish date, maintainer. Exposure as traversal - not similarity search.'", 1.6),
-    ("bash scripts/video/demo_query.sh ms@2.1.3", 7.0),
-    ("echo 'A vector index cannot answer this at all.'", 2.0),
+    ("./bin/blastfall scan ms@2.1.3", 8.0),
+    ("./bin/blastfall scan rc@1.2.8", 6.0),
 ]
 
 
@@ -39,8 +37,11 @@ def main():
         page.goto(TTYD_URL, wait_until="networkidle")
         page.wait_for_selector(".terminal, .xterm", timeout=15000)
         time.sleep(1.5)
+        # full-bleed dark terminal; remove any page chrome
+        page.add_style_tag(content="html,body{background:#000!important;margin:0!important;}")
+        time.sleep(0.3)
         # focus the terminal
-        page.click(".terminal")
+        page.evaluate("document.querySelector('textarea').focus()")
         time.sleep(0.5)
 
         for cmd, hold in COMMANDS:

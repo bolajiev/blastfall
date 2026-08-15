@@ -68,14 +68,14 @@ def main():
         pause(page, 0.5)
         chip.click()
         page.wait_for_selector("#results", state="visible", timeout=20000)
-        pause(page, 9)  # graph reveal animation
-        # park cursor near the exposure card so it reads as deliberate
-        page.evaluate("window.scrollTo(0, 0)")
-        move(page, 1780, 320)
-        pause(page, 4)  # read the cards + graph (cursor in right gutter)
+        pause(page, 6)  # graph reveal animation
+        # center the exposure-map graph so the whole closure is visible
+        page.evaluate("document.querySelector('#graph-panel').scrollIntoView({block:'center'})")
+        move(page, 1700, 100)
+        pause(page, 3)  # read the cards + graph (cursor in header)
 
         # --- scroll through the report ---
-        for sel, hold in [("#intro-panel", 6), ("#dependents", 4)]:
+        for sel, hold in [("#intro-panel", 4), ("#dependents", 3)]:
             page.evaluate(f"document.querySelector('{sel}').scrollIntoView({{block:'center'}})")
             move(page, 1700, 100)
             pause(page, hold)
@@ -89,21 +89,21 @@ def main():
         move(page, gb["x"] + gb["width"] / 2, gb["y"] + gb["height"] / 2)
         pause(page, 0.3)
         go.click()
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(2200)
         page.evaluate("window.scrollTo(0, 0)")
         move(page, 1700, 100)
-        pause(page, 3)
+        pause(page, 2)
         page.evaluate("document.querySelector('#window-panel').scrollIntoView({block:'center'})")
         move(page, 1700, 100)
-        pause(page, 5)
+        pause(page, 3.5)
 
         # --- shared maintainers + typosquats ---
         page.evaluate("document.querySelector('#mnts').scrollIntoView({block:'center'})")
         move(page, 1700, 100)
-        pause(page, 4)
+        pause(page, 2)
         page.evaluate("document.querySelector('#typos').scrollIntoView({block:'center'})")
         move(page, 1700, 100)
-        pause(page, 3)
+        pause(page, 2)
 
         # --- worm scenario (MSpaths) ---
         page.evaluate("document.querySelector('.panel').scrollIntoView({block:'start'})")
@@ -114,9 +114,9 @@ def main():
         move(page, wb["x"] + wb["width"] / 2, wb["y"] + wb["height"] / 2)
         pause(page, 0.3)
         page.locator("#wormgo").click()
-        page.wait_for_timeout(6000)  # union traversal
+        page.wait_for_timeout(5000)  # union traversal
         move(page, 1700, 100)
-        pause(page, 6)  # hold on the result
+        pause(page, 4)  # hold on the result
         page.screenshot(path=str(OUT_DIR / "worm-result.png"))
 
         page.close()

@@ -17,3 +17,7 @@ scripts/video/worm-result.png
 scripts/video/qa-frames*
 scripts/video/*-capture/
 scripts/video/seg*.mp4
+
+scripts/video/audit-*/
+scripts/video/*.m4a
+scripts/video/blastfall-silent.mp4

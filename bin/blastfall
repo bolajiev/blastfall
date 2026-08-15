@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Blastfall CLI — supply-chain blast radius on the HydraDB dependency graph.
+
+Usage:
+  ./bin/blastfall scan <name>@<version> [--hops N]
+  ./bin/blastfall incidents
+"""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
+from app import graph
+
+
+def cmd_scan(args):
+    spec = args[0]
+    hops = int(args[args.index("--hops") + 1]) if "--hops" in args else 5
+    br = graph.blast_radius(spec, max_len=hops)
+    if br is None:
+        print(f"error: unknown package@version {spec}")
+        return 1
+    dd = graph.direct_dependents(spec)
+    red, bold, dim, reset = "\x1b[38;5;196m", "\x1b[1m", "\x1b[38;5;245m", "\x1b[0m"
+    print(f"{red}{bold}[compromised]{reset} {br['name']}@{br['version']}")
+    print(f"exposed versions : {br['exposed_version_count']}")
+    print(f"exposed packages : {br['exposed_package_count']}")
+    print(f"exposed services : {len(br['exposed_services'])}")
+    for s in br["exposed_services"]:
+        print(f"  {dim}- {s}{reset}")
+    print(f"direct dependents: {dd['total'] if dd else 0}")
+    return 0
+
+
+def cmd_incidents(_):
+    from app.server import FEATURED_INCIDENTS
+    for k, v in FEATURED_INCIDENTS.items():
+        print(f"{v['name']:<22} {v['incident']}")
+    return 0
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return 1
+    cmd = sys.argv[1]
+    if cmd == "scan" and len(sys.argv) >= 3:
+        return cmd_scan(sys.argv[2:])
+    if cmd == "incidents":
+        return cmd_incidents([])
+    print(__doc__)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
