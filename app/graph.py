@@ -358,4 +358,16 @@ def subgraph(spec, max_len=6, path_count=200):
         cursor = r.get("next_cursor")
         if not cursor or not r.get("rows"):
             break
-    return {"nodes": list(nodes.values()), "edges": [{"src": s, "dst": d} for s, d in edges]}
+    # keep the viz legible: compromised + services first, then a sample of versions
+    all_nodes = list(nodes.values())
+    version_nodes = [n for n in all_nodes if n["kind"] == "version"]
+    kept = [n for n in all_nodes if n["kind"] != "version"]
+    if len(kept) + len(version_nodes) > 90:
+        version_nodes = version_nodes[: 90 - len(kept)]
+    kept.extend(version_nodes)
+    kept_ids = {n["id"] for n in kept}
+    edges_kept = [e for e in edges if e[0] in kept_ids and e[1] in kept_ids]
+    return {
+        "nodes": kept,
+        "edges": [{"src": s, "dst": d} for s, d in edges_kept],
+    }

@@ -20,18 +20,23 @@ ffmpeg -y -v error -f lavfi -i color=c=0x0d1117:s=1920x1080:d=${COLD_MS}ms \
        drawtext=textfile=/tmp/cold.txt:fontfile=${FONT}:fontcolor=white:fontsize=44:line_spacing=28:x=(w-text_w)/2:y=420" \
   -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg1-cold.mp4
 
-# --- terminal take (normalize) ---
-ffmpeg -y -v error -i blastfall-terminal.mp4 -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg2-terminal.mp4
+# --- terminal take (crisp, real terminal via ttyd; recorded at 1440x810) ---
+ffmpeg -y -v error -ss 2.0 -i terminal-demo.webm -vf "scale=1920:1080:flags=lanczos" \
+  -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg2-terminal.mp4
 
 # --- UI take, slowed ~0.9x ---
 ffmpeg -y -v error -i ui-demo.mp4 -filter_complex "[0:v]setpts=1/0.9*PTS[v]" -map "[v]" \
   -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg3-ui.mp4
 
-# --- closing card: last query result + HydraDB callout ---
-ffmpeg -y -v error -loop 1 -i worm-result.png -t ${CLOSE_MS}ms -r 60 \
-  -vf "drawtext=text='The HydraDB callout':fontfile=${FONT}:fontcolor=0x3fb950:fontsize=28:x=80:y=h-260, \
-       drawtext=text='algo.MSpaths traversal / object storage backend / a vector index cannot do this':fontfile=${FONT}:fontcolor=white:fontsize=34:x=80:y=h-190" \
-  -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg4-close.mp4
+# --- closing: the last query result (clean), then a callout card ---
+ffmpeg -y -v error -loop 1 -i worm-result.png -t 7000ms -r 60 \
+  -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg4a-result.mp4
+ffmpeg -y -v error -f lavfi -i color=c=0x0d1117:s=1920x1080:d=${CLOSE_MS}ms \
+  -vf "drawtext=text='Blastfall':fontfile=${FONT}:fontcolor=0xf85149:fontsize=72:x=(w-text_w)/2:y=320, \
+       drawtext=text='Powered by algo.MSpaths + object storage':fontfile=${FONT}:fontcolor=white:fontsize=38:x=(w-text_w)/2:y=480, \
+       drawtext=text='- not a vector index -':fontfile=${FONT}:fontcolor=0x8b949e:fontsize=30:x=(w-text_w)/2:y=560, \
+       drawtext=text='Hack Hydra 2026':fontfile=${FONT}:fontcolor=0x30363d:fontsize=26:x=(w-text_w)/2:y=660" \
+  -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg4b-card.mp4
 
 # --- timing + captions ---
 python3 - "$COLD_MS" "$CLOSE_MS" <<'PY'
@@ -46,12 +51,14 @@ def dur(f):
 cold = dur("seg1-cold.mp4")
 term = dur("seg2-terminal.mp4")
 ui = dur("seg3-ui.mp4")
-close = dur("seg4-close.mp4")
+close_a = dur("seg4a-result.mp4")
+close_b = dur("seg4b-card.mp4")
 
 t1 = cold
 t2 = t1 + term
 t3 = t2 + ui
-t4 = t3 + close
+t4 = t3 + close_a
+t5 = t4 + close_b
 
 def cap(start, end, text):
     def fmt(t):
@@ -75,13 +82,13 @@ for st, en, txt in [
 with open("captions.srt", "w") as f:
     f.write("\n".join(srt))
 
-print(f"cold={cold:.2f} term={term:.2f} ui={ui:.2f} close={close:.2f} total={t4:.2f}")
+print(f"cold={cold:.2f} term={term:.2f} ui={ui:.2f} result={close_a:.2f} card={close_b:.2f} total={t5:.2f}")
 PY
 
-# --- concat + burn captions ---
-printf "file 'seg1-cold.mp4'\nfile 'seg2-terminal.mp4'\nfile 'seg3-ui.mp4'\nfile 'seg4-close.mp4'\n" > list.txt
+# --- concat + burn captions (small, semi-transparent lower-third) ---
+printf "file 'seg1-cold.mp4'\nfile 'seg2-terminal.mp4'\nfile 'seg3-ui.mp4'\nfile 'seg4a-result.mp4'\nfile 'seg4b-card.mp4'\n" > list.txt
 ffmpeg -y -v error -f concat -safe 0 -i list.txt \
-  -vf "subtitles=captions.srt:force_style='FontName=DejaVu Sans,FontSize=21,PrimaryColour=&H00FFFFFF,Alignment=2,MarginV=64'" \
+  -vf "subtitles=captions.srt:force_style='FontName=DejaVu Sans,FontSize=17,PrimaryColour=&H00FFFFFF,BorderStyle=3,BackColour=&HAA000000,Alignment=2,MarginV=118'" \
   -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p blastfall-demo.mp4
 
 echo "done -> blastfall-demo.mp4"

@@ -118,7 +118,7 @@ footer { color:var(--muted); font-size:12px; padding:20px 28px; text-align:cente
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="intro-panel">
       <h2>Which version introduced it <span class="muted">(the first version of each affected package that resolved to the compromised dependency)</span></h2>
       <div style="max-height:300px;overflow:auto"><table><thead><tr><th>package</th><th>first version to pull it in</th><th>published</th></tr></thead><tbody id="intros"></tbody></table></div>
     </div>
@@ -128,7 +128,7 @@ footer { color:var(--muted); font-size:12px; padding:20px 28px; text-align:cente
         <h2>Direct dependents <span class="muted">(resolved to this exact version)</span></h2>
         <div style="max-height:300px;overflow:auto"><table><thead><tr><th>package</th><th>version</th><th>published</th></tr></thead><tbody id="dependents"></tbody></table></div>
       </div>
-      <div class="panel">
+      <div class="panel" id="window-panel">
         <h2>Resolution window <span class="muted">(dependents released between compromise and attack time)</span></h2>
         <div style="max-height:300px;overflow:auto"><table><thead><tr><th>package</th><th>version</th><th>published</th></tr></thead><tbody id="window"></tbody></table></div>
       </div>
@@ -265,16 +265,17 @@ function renderGraph(sub){
   const nodes=new vis.DataSet();
   const edges=new vis.DataSet();
   const edgeList=sub.edges.slice();
-  const options={physics:{enabled:true,barnesHut:{gravitationalConstant:-4000,centralGravity:0.15}},
+  const options={physics:{enabled:true,barnesHut:{gravitationalConstant:-6000,centralGravity:0.07}},
     interaction:{hover:true},height:'520px'};
   if(net) net.destroy();
   net=new vis.Network($('graph'),{nodes,edges},options);
 
   const style=n=>{
     const c=nodeColors[n.kind]||'#58a6ff';
-    return {id:n.id,label:n.label,color:{background:c,border:c},
-      font:{color:'#e6edf3',size:11},shape:'dot',
-      size:n.kind==='compromised'?22:n.kind==='service'?14:10,title:n.label};
+    const showLabel = n.kind !== 'version';
+    return {id:n.id,label:showLabel?n.label:'',color:{background:c,border:c},
+      font:{color:'#e6edf3',size:showLabel?15:1},shape:'dot',
+      size:n.kind==='compromised'?26:n.kind==='service'?17:6,title:n.label};
   };
   // staged reveal: compromised node, then services, then versions stream in
   const waves=[[],[],[]];

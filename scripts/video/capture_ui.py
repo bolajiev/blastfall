@@ -18,11 +18,11 @@ CURSOR_JS = """
   const c = document.createElement('div');
   c.id = 'fakecursor';
   c.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;pointer-events:none;'
-    + 'width:22px;height:22px;margin:-11px 0 0 -11px;border:2px solid #f85149;'
-    + 'border-radius:50%;background:rgba(248,81,73,.25);';
+    + 'width:30px;height:30px;margin:-15px 0 0 -15px;border:3px solid #f85149;'
+    + 'border-radius:50%;background:rgba(248,81,73,.28);box-shadow:0 0 12px rgba(248,81,73,.6);';
   const d = document.createElement('div');
-  d.style.cssText = 'position:absolute;top:50%;left:50%;width:4px;height:4px;'
-    + 'margin:-2px 0 0 -2px;border-radius:50%;background:#fff;';
+  d.style.cssText = 'position:absolute;top:50%;left:50%;width:6px;height:6px;'
+    + 'margin:-3px 0 0 -3px;border-radius:50%;background:#fff;';
   c.appendChild(d);
   document.documentElement.appendChild(c);
   window.__cursor = c;
@@ -54,6 +54,7 @@ def main():
         page = ctx.new_page()
         page.goto(BASE, wait_until="networkidle")
         page.add_script_tag(content=CURSOR_JS)
+        page.evaluate("document.body.style.zoom = '1.35'")
         time.sleep(2)
 
         # load featured incidents
@@ -68,31 +69,40 @@ def main():
         chip.click()
         page.wait_for_selector("#results", state="visible", timeout=20000)
         pause(page, 9)  # graph reveal animation
+        # park cursor near the exposure card so it reads as deliberate
         page.evaluate("window.scrollTo(0, 0)")
-        pause(page, 4)  # read the cards + graph
+        move(page, 1780, 320)
+        pause(page, 4)  # read the cards + graph (cursor in right gutter)
 
         # --- scroll through the report ---
-        for selector, hold in [("#intros", 6), ("#dependents", 4)]:
-            page.evaluate(f"document.querySelector('{selector}').scrollIntoView({{block:'center'}})")
+        for sel, hold in [("#intro-panel", 6), ("#dependents", 4)]:
+            page.evaluate(f"document.querySelector('{sel}').scrollIntoView({{block:'center'}})")
+            move(page, 1700, 100)
             pause(page, hold)
 
         # --- attack time + resolution window ---
         now = time.strftime("%Y-%m-%dT%H:%M", time.gmtime())
         at = page.locator("#attack")
         at.fill(now)
-        move(page, 1600, 620)
+        go = page.locator("#go")
+        gb = go.bounding_box()
+        move(page, gb["x"] + gb["width"] / 2, gb["y"] + gb["height"] / 2)
         pause(page, 0.3)
-        page.locator("#go").click()
+        go.click()
         page.wait_for_timeout(3000)
         page.evaluate("window.scrollTo(0, 0)")
+        move(page, 1700, 100)
         pause(page, 3)
-        page.evaluate("document.querySelector('#window').scrollIntoView({block:'center'})")
+        page.evaluate("document.querySelector('#window-panel').scrollIntoView({block:'center'})")
+        move(page, 1700, 100)
         pause(page, 5)
 
         # --- shared maintainers + typosquats ---
         page.evaluate("document.querySelector('#mnts').scrollIntoView({block:'center'})")
+        move(page, 1700, 100)
         pause(page, 4)
         page.evaluate("document.querySelector('#typos').scrollIntoView({block:'center'})")
+        move(page, 1700, 100)
         pause(page, 3)
 
         # --- worm scenario (MSpaths) ---
@@ -100,10 +110,12 @@ def main():
         pause(page, 0.5)
         worm = page.locator("#worm")
         worm.fill("rc, colors")
-        move(page, 1500, 500)
+        wb = page.locator("#wormgo").bounding_box()
+        move(page, wb["x"] + wb["width"] / 2, wb["y"] + wb["height"] / 2)
         pause(page, 0.3)
         page.locator("#wormgo").click()
         page.wait_for_timeout(6000)  # union traversal
+        move(page, 1700, 100)
         pause(page, 6)  # hold on the result
         page.screenshot(path=str(OUT_DIR / "worm-result.png"))
 

@@ -13,3 +13,7 @@ scripts/video/*.srt
 scripts/video/list.txt
 scripts/video/ui-capture/
 scripts/video/worm-result.png
+
+scripts/video/qa-frames*
+scripts/video/*-capture/
+scripts/video/seg*.mp4
