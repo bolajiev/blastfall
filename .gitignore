@@ -9,3 +9,7 @@ node.log
 scripts/video/*.gif
 scripts/video/*.mp4
 scripts/video/*.webm
+scripts/video/*.srt
+scripts/video/list.txt
+scripts/video/ui-capture/
+scripts/video/worm-result.png
