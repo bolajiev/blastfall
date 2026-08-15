@@ -229,6 +229,43 @@ def exposed_services(compromised_spec, max_len=8):
     return {"services": services, "maxLen": max_len}
 
 
+def introductions(spec, limit=8):
+    """For the compromised name@version, which version of each affected package
+    *first* resolved to it — i.e., where the exposure entered the chain.
+
+    Answers the track question "which version of the dependency introduced the
+    vulnerability?" from each dependent's version timeline.
+    """
+    name, version = _parse_spec(spec)
+    vid = lookup_version(name, version)
+    if vid is None:
+        return None
+    first = {}  # pkg -> (first_at, first_version)
+    cursor = None
+    query_id = None
+    q = ("MATCH (v:Version)-[:DEPENDS_ON]->(c:Version {id: $id}) "
+         "RETURN v.name AS pkg, v.version AS ver, v.publishedAt AS at ORDER BY at")
+    while True:
+        body = {"cell_id": "cell-0", "query": q, "page_size": 4000,
+                "parameters": {"id": vid}}
+        if cursor is not None:
+            body["cursor"] = cursor
+        if query_id:
+            body["query_id"] = query_id
+        r = _post_raw(body)
+        query_id = r.get("query_id", query_id)
+        for row in r.get("rows", []):
+            pkg, ver, at = row[0]["value"], row[1]["value"], row[2]["value"]
+            if pkg not in first:
+                first[pkg] = (at, ver)
+        cursor = r.get("next_cursor")
+        if not cursor or not r.get("rows"):
+            break
+    rows = [{"package": p, "first_version": v, "first_published": at}
+            for p, (at, v) in sorted(first.items(), key=lambda kv: kv[1][0])]
+    return rows[:limit]
+
+
 def multi_compromise(package_names, max_len=5, path_count=100000):
     """Union blast radius across several compromised packages (worm scenario).
 

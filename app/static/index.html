@@ -118,6 +118,11 @@ footer { color:var(--muted); font-size:12px; padding:20px 28px; text-align:cente
       </div>
     </div>
 
+    <div class="panel">
+      <h2>Which version introduced it <span class="muted">(the first version of each affected package that resolved to the compromised dependency)</span></h2>
+      <div style="max-height:300px;overflow:auto"><table><thead><tr><th>package</th><th>first version to pull it in</th><th>published</th></tr></thead><tbody id="intros"></tbody></table></div>
+    </div>
+
     <div class="grid2">
       <div class="panel">
         <h2>Direct dependents <span class="muted">(resolved to this exact version)</span></h2>
@@ -236,6 +241,11 @@ function render(d){
 
   $('dependents').innerHTML=d.direct_dependents.rows.map(rw=>
     `<tr><td>${rw.name}</td><td>${rw.version}</td><td class="muted">${rw.publishedAt.slice(0,10)}</td></tr>`).join('');
+
+  $('intros').innerHTML=d.introductions.length
+    ? d.introductions.map(rw=>
+        `<tr><td>${rw.package}</td><td><code>${rw.first_version}</code></td><td class="muted">${rw.first_published.slice(0,10)}</td></tr>`).join('')
+    : '<tr><td colspan=3 class="muted">no in-universe versions resolved to it</td></tr>';
 
   $('window').innerHTML=d.resolution_window.length
     ? d.resolution_window.map(rw=>`<tr><td>${rw.name}</td><td>${rw.version}</td><td class="muted">${rw.publishedAt.slice(0,10)}</td></tr>`).join('')

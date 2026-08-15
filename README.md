@@ -23,6 +23,9 @@ HydraDB and answers it with HydraDB's native graph traversal:
   property index, not a client-side query per package)
 - **Resolution window** — which releases pulled in the bad version between when
   it was published and when the attack was discovered
+- **Which version introduced it** — for each affected package, the first version
+  that resolved to the compromised dependency (temporal, from the version
+  timeline)
 - **Shared maintainers** — other packages maintained by the same people
 - **Typosquats** — close-name impostors that sit adjacent to popular packages
 

@@ -25,23 +25,26 @@ exposed — auth, payments, reports, search. Here's the reverse-dependency
 closure — 400+ direct dependents, and the subgraph is traversed from HydraDB's
 native path procedures."
 
-### 1:20-1:50 — Resolution window
-"Now the harder question: which of our own releases pulled the bad version in
-before we caught it? Set the attack time and Blastfall filters dependents that
-resolved to it between publish and discovery — that's the lockfile window.
-Temporal versioning in HydraDB makes this a WHERE clause, not a pipeline."
+### 1:20-1:55 — Which version introduced it + resolution window
+"Now the harder questions. Which version of the dependency *introduced* the
+vulnerability? For each affected package, Blastfall finds the first version
+that resolved to the bad release — `debug` first pulled in `ms@2.1.3` at
+`debug@4.3.7` in September 2024; anything on `debug >= 4.3.7` carries it. And
+which releases pulled it in between publish and discovery? Set the attack time
+and the resolution window filters dependents resolved to it in that span —
+that's the lockfile window. Both are WHERE clauses over HydraDB's versioned,
+temporal graph, not pipelines."
 
-### 1:50-2:15 — Typosquats + shared maintainers
-"Close-name impostors sit right next to a popular package. `ms` has six
+### 1:55-2:40 — Typosquats + maintainers, worm scenario
+"Close-name impostors sit right next to a popular package — `ms` has six
 edit-distance-one neighbors in the universe. And packages that share a
-maintainer are the next wave to watch — all single-hop traversals."
+maintainer are the next wave to watch; both are single-hop traversals.
 
-### 2:15-2:45 — The worm scenario (MSpaths)
-"Now the real attack: TanStack's CI was breached and 84 artifacts went out
-across 42 packages in six minutes — that's not one package, it's a set. The
-union blast radius is one batched `algo.MSpaths` call: sources resolved
-through the property index, one traversal, no client-side fan-out. Two
-compromised packages cover 2,000 exposed versions and 82 packages here."
+Now the real attack: TanStack's CI was breached and 84 artifacts went out across
+42 packages in six minutes — that's not one package, it's a set. The union blast
+radius is one batched `algo.MSpaths` call: sources resolved through the property
+index, one traversal, no client-side fan-out. Two compromised packages cover
+2,000 exposed versions and 82 packages here."
 
 ### 2:45-3:00 — Why HydraDB & wrap
 "Blast radius at six hops returns in well under a second on this graph, because

@@ -67,6 +67,7 @@ def compromise(body: Compromise):
     return {
         "blast_radius": br,
         "direct_dependents": dd,
+        "introductions": graph.introductions(spec),
         "typosquats": typos,
         "shared_maintainers": mnts,
         "resolution_window": window,
