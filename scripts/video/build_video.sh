@@ -6,7 +6,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 COLD_MS=4000
-CLOSE_MS=8000
+CLOSE_MS=6000
 
 # --- cold open card ---
 printf '%s\n' \

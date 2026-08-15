@@ -21,3 +21,6 @@ scripts/video/seg*.mp4
 scripts/video/audit-*/
 scripts/video/*.m4a
 scripts/video/blastfall-silent.mp4
+
+scripts/video/*.wav
+scripts/video/voice-check*
