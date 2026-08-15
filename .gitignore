@@ -6,3 +6,6 @@ hydradb-data/
 /tmp/
 node.log
 .DS_Store
+scripts/video/*.gif
+scripts/video/*.mp4
+scripts/video/*.webm

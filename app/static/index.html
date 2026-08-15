@@ -262,16 +262,38 @@ function render(d){
 function renderGraph(sub){
   if(!sub) return;
   const nodeColors={compromised:'#f85149',service:'#3fb950',version:'#58a6ff'};
-  const nodes=new vis.DataSet(sub.nodes.map(n=>({
-    id:n.id,label:n.label,color:{background:nodeColors[n.kind]||'#58a6ff',border:nodeColors[n.kind]||'#58a6ff'},
-    font:{color:'#e6edf3',size:11},shape:'dot',size:n.kind==='compromised'?20:10,
-    title:n.label
-  })));
-  const edges=new vis.DataSet(sub.edges.map(e=>({from:e.src,to:e.dst,arrows:'to',color:{color:'#30363d',highlight:'#f85149'}})));
+  const nodes=new vis.DataSet();
+  const edges=new vis.DataSet();
+  const edgeList=sub.edges.slice();
   const options={physics:{enabled:true,barnesHut:{gravitationalConstant:-4000,centralGravity:0.15}},
     interaction:{hover:true},height:'520px'};
   if(net) net.destroy();
   net=new vis.Network($('graph'),{nodes,edges},options);
+
+  const style=n=>{
+    const c=nodeColors[n.kind]||'#58a6ff';
+    return {id:n.id,label:n.label,color:{background:c,border:c},
+      font:{color:'#e6edf3',size:11},shape:'dot',
+      size:n.kind==='compromised'?22:n.kind==='service'?14:10,title:n.label};
+  };
+  // staged reveal: compromised node, then services, then versions stream in
+  const waves=[[],[],[]];
+  for(const n of sub.nodes){ waves[n.kind==='compromised'?0:n.kind==='service'?1:2].push(n); }
+  const order=[].concat(...waves);
+  let idx=0;
+  const step=()=>{
+    for(const n of order.slice(idx, idx+12)){ nodes.add(style(n)); }
+    for(let e=edgeList.length-1; e>=0; e--){
+      const ed=edgeList[e];
+      if(nodes.get(ed.src)&&nodes.get(ed.dst)){
+        edges.add({from:ed.src,to:ed.dst,arrows:'to',color:{color:'#30363d',highlight:'#f85149'}});
+        edgeList.splice(e,1);
+      }
+    }
+    idx+=12;
+    if(idx<order.length){ setTimeout(step, 90); }
+  };
+  setTimeout(step, 150);
 }
 </script>
 </body>
