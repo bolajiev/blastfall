@@ -19,16 +19,19 @@ CURSOR_JS = """
   c.id = 'fakecursor';
   c.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;pointer-events:none;'
     + 'width:30px;height:30px;margin:-15px 0 0 -15px;border:3px solid #f85149;'
-    + 'border-radius:50%;background:rgba(248,81,73,.28);box-shadow:0 0 12px rgba(248,81,73,.6);';
+    + 'border-radius:50%;background:rgba(248,81,73,.28);box-shadow:0 0 12px rgba(248,81,73,.6);'
+    + 'opacity:0;transition:opacity .35s;';
   const d = document.createElement('div');
   d.style.cssText = 'position:absolute;top:50%;left:50%;width:6px;height:6px;'
     + 'margin:-3px 0 0 -3px;border-radius:50%;background:#fff;';
   c.appendChild(d);
   document.documentElement.appendChild(c);
-  window.__cursor = c;
+  let t = null;
+  const show = () => { c.style.opacity = '1'; clearTimeout(t); t = setTimeout(() => c.style.opacity = '0', 900); };
   document.addEventListener('mousemove', e => {
     c.style.left = e.clientX + 'px';
     c.style.top = e.clientY + 'px';
+    show();
   });
 })();
 """
@@ -54,7 +57,7 @@ def main():
         page = ctx.new_page()
         page.goto(BASE, wait_until="networkidle")
         page.add_script_tag(content=CURSOR_JS)
-        page.evaluate("document.body.style.zoom = '1.35'")
+        page.evaluate("document.body.style.zoom = '1.25'")
         time.sleep(2)
 
         # load featured incidents
@@ -70,14 +73,12 @@ def main():
         page.wait_for_selector("#results", state="visible", timeout=20000)
         pause(page, 6)  # graph reveal animation
         # center the exposure-map graph so the whole closure is visible
-        page.evaluate("document.querySelector('#graph-panel').scrollIntoView({block:'center'})")
-        move(page, 1700, 100)
+        page.evaluate("document.querySelector('#graph-panel').scrollIntoView({block:'start'}); window.scrollBy(0, -30)")
         pause(page, 3)  # read the cards + graph (cursor in header)
 
         # --- scroll through the report ---
         for sel, hold in [("#intro-panel", 4), ("#dependents", 3)]:
             page.evaluate(f"document.querySelector('{sel}').scrollIntoView({{block:'center'}})")
-            move(page, 1700, 100)
             pause(page, hold)
 
         # --- attack time + resolution window ---
@@ -90,19 +91,15 @@ def main():
         pause(page, 0.3)
         go.click()
         page.wait_for_timeout(2200)
-        page.evaluate("window.scrollTo(0, 0)")
-        move(page, 1700, 100)
+        page.evaluate("document.querySelector('#graph-panel').scrollIntoView({block:'start'}); window.scrollBy(0, -30)")
         pause(page, 2)
         page.evaluate("document.querySelector('#window-panel').scrollIntoView({block:'center'})")
-        move(page, 1700, 100)
         pause(page, 3.5)
 
         # --- shared maintainers + typosquats ---
         page.evaluate("document.querySelector('#mnts').scrollIntoView({block:'center'})")
-        move(page, 1700, 100)
         pause(page, 2)
         page.evaluate("document.querySelector('#typos').scrollIntoView({block:'center'})")
-        move(page, 1700, 100)
         pause(page, 2)
 
         # --- worm scenario (MSpaths) ---
@@ -115,7 +112,6 @@ def main():
         pause(page, 0.3)
         page.locator("#wormgo").click()
         page.wait_for_timeout(5000)  # union traversal
-        move(page, 1700, 100)
         pause(page, 4)  # hold on the result
         page.screenshot(path=str(OUT_DIR / "worm-result.png"))
 

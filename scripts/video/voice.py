@@ -56,8 +56,9 @@ def main():
         (cold + 1.0, "Blastfall ingests the real npm dependency graph into HydraDB. "
          "Every version, publish date, maintainer. "
          "Blast radius as graph traversal, not similarity search."),
-        (cold + 12.0, "We compromise ms, one of the most depended-on packages in the ecosystem. "
-         "One thousand seven hundred fifty-one versions exposed. Four of five services."),
+        (cold + 12.0, "We compromise the ms package, one of the most depended-on "
+         "packages in the ecosystem. One thousand seven hundred fifty-one "
+         "versions exposed. Four of five services."),
         (ui_s + 2.0, "Here's the reverse dependency closure. "
          "Incoming edges walked from the compromised node to every exposed version."),
         (ui_s + 14.0, "Which version introduced it? Debug first pulled in the bad release "

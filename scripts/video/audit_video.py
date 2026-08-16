@@ -19,19 +19,37 @@ FRAMES_DIR = sys.argv[1] if len(sys.argv) > 1 else "audit-frames"
 STEP = float(sys.argv[2]) if len(sys.argv) > 2 else 2.0
 BATCH = int(sys.argv[3]) if len(sys.argv) > 3 else 18
 
-PROMPT = """You are a senior video editor who reviews product-demo cutdowns for
-VC demo reels. I am sending you stills sampled every {step} seconds from a
-2.5-minute hackathon demo video of a software supply-chain security tool.
-Audit it frame-by-frame like a professional.
+PROMPT = """You are auditing this video while operating under a strict
+engineering operating doctrine (the "all-you-need-skill"). Apply its
+non-negotiables to the audit itself:
+
+1. VERIFY, DON'T ASSUME. Every verdict must cite evidence you can actually see
+   in the frame (specific text, specific element, specific pixel-level issue).
+   Never write "probably fine" or "it should work". If you cannot confirm
+   something from the image, say "cannot verify from this frame".
+2. NO STOPGAPS. Anything that LOOKS done but isn't (a caption overlapping UI,
+   a broken/truncated element, a fake-looking result, misaligned text, a
+   recording artifact passed off as a transition) must be named as a defect,
+   not waved through. Call out slop.
+3. SAY WHEN TO STOP. If a frame is ambiguous (you can't tell what it shows or
+   whether text is legible), say so explicitly with "AMBIGUOUS:" — do not guess
+   a verdict.
+4. AUDIT TRAIL. Every issue gets a timestamp (T=...) and is reproducible.
+5. You are a senior video editor reviewing a hackathon product-demo reel for
+   judges, not a friend. Be blunt.
+
+I am sending you stills sampled every {step} seconds from a ~1:40 demo video
+of a software supply-chain security tool.
 
 For EACH frame, output exactly one line:
-T={{t:.1f}}s | SHOT=<what's on screen, 4-8 words> | VERDICT=<KEEP|TRIM|CUT|RETIME> | WHY=<one clause>
+T={{t:.1f}}s | SHOT=<what's on screen, 4-8 words> | VERDICT=<KEEP|TRIM|CUT|RETIME> | WHY=<one clause, evidence-based>
 
 Then finish with:
 PACE REPORT: list every place the screen is static too long (dead air), every
 hold that should be shortened, and any frames that waste the viewer's time
-(repeated/identical frames, empty regions, redundant shots). Be blunt and
-specific. The goal is a tighter, more professional cut.""".format(step=STEP)
+(repeated/identical frames, empty regions, redundant shots).
+DEFECT LIST: every named stopgap-style defect with its timestamp, one line
+each. Be specific and blunt.""".format(step=STEP)
 
 
 def b64(path):

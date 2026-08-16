@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 FONT="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-COLD_MS=4000
+COLD_MS=2500
 CLOSE_MS=6000
 
 # --- cold open card ---
@@ -21,7 +21,7 @@ ffmpeg -y -v error -f lavfi -i color=c=0x0d1117:s=1920x1080:d=${COLD_MS}ms \
   -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg1-cold.mp4
 
 # --- terminal take (crisp, real terminal via ttyd; recorded at 1440x810) ---
-ffmpeg -y -v error -ss 2.0 -i terminal-demo.webm -vf "scale=1920:1080:flags=lanczos" \
+ffmpeg -y -v error -ss 2.2 -i terminal-demo.webm -vf "scale=1920:1080:flags=lanczos" \
   -r 60 -c:v libx264 -preset fast -crf 20 -pix_fmt yuv420p seg2-terminal.mp4
 
 # --- UI take (fresh from the latest capture), slowed ~0.9x, skip lead-in ---

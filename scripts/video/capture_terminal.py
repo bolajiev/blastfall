@@ -14,8 +14,7 @@ OUT_DIR = Path(__file__).parent
 TTYD_URL = os.environ.get("TTYD_URL", "http://127.0.0.1:7777")
 
 COMMANDS = [
-    ("./bin/blastfall scan ms@2.1.3", 8.0),
-    ("./bin/blastfall scan rc@1.2.8", 6.0),
+    ("./bin/blastfall scan ms@2.1.3", 3.5),
 ]
 
 

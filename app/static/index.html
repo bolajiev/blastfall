@@ -46,7 +46,7 @@ th { color:var(--muted); font-weight:500; font-size:11px; text-transform:upperca
 .tag.danger { background:rgba(248,81,73,.12); color:var(--danger); border-color:rgba(248,81,73,.3); }
 .tag.ok { background:rgba(63,185,80,.12); color:var(--ok); border-color:rgba(63,185,80,.3); }
 .chips { max-height:180px; overflow:auto; }
-#graph { width:100%; height:520px; border:1px solid var(--border); border-radius:8px; background:#0a0d13; }
+#graph { width:100%; height:400px; border:1px solid var(--border); border-radius:8px; background:#0a0d13; }
 .muted { color:var(--muted); }
 .loading { color:var(--warn); }
 .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
@@ -266,7 +266,7 @@ function renderGraph(sub){
   const edges=new vis.DataSet();
   const edgeList=sub.edges.slice();
   const options={physics:{enabled:true,barnesHut:{gravitationalConstant:-6000,centralGravity:0.07}},
-    interaction:{hover:true},height:'520px'};
+    interaction:{hover:true},height:'400px'};
   if(net) net.destroy();
   net=new vis.Network($('graph'),{nodes,edges},options);
 
