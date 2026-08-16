@@ -7,8 +7,8 @@
   cards, no zoom-whoosh transitions.
 - **Screen capture:** 60fps min, 1440p+, cursor visible and deliberate (script
   the path, no jitter).
-- **Terminal segments:** record with `vhs` from a `.tape` script (deterministic
-  typing, no typos/backspaces on camera).
+- **Terminal segments:** record with `scripts/video/capture_terminal.py` (ttyd +
+  Playwright, deterministic typing, no typos/backspaces on camera).
 - **Browser/UI segments:** Kap or native OS recorder, 1440p, cursor highlight
   ON, no webcam bubble.
 - **Edit:** ffmpeg / DaVinci Resolve. Hard cuts or 200ms crossfades only.
@@ -36,8 +36,8 @@ On-screen text, no narrator preamble, no logo:
 publish date, and maintainer — and answers the blast radius as a graph
 traversal, not a similarity search."
 
-### 0:45–1:10 — Terminal segment (vhs, deterministic)
-`bash scripts/video/demo_query.sh ms@2.1.3` — the tape types the query and the
+### 0:45–1:10 — Terminal segment (capture_terminal.py, deterministic)
+`./bin/blastfall scan ms@2.1.3` — capture_terminal.py types the query and the
 summary prints. Hold ≥3s on:
 ```
 [compromised] ms@2.1.3
@@ -77,14 +77,12 @@ not a vector index bolt-on." End on the worm result on screen.
 
 ## Capture files
 
-### Terminal — `scripts/video/compromise.tape` (+ `demo_query.sh`)
-Deterministic vhs recording of the 0:45–1:10 segment. On your machine:
-`brew install vhs` then `vhs scripts/video/compromise.tape` (outputs
-`scripts/video/blastfall-compromise.gif`). For crisp 1440p, upscale with
-`ffmpeg -i blastfall-compromise.gif -vf "scale=2560:1440:flags=lanczos" out.mp4`
-— or record the terminal at native res in Kap and use the tape only as the
-typing/pacing reference. `demo_query.sh` is the real query: `bash
-scripts/video/demo_query.sh <name>@<version>` prints the headline exposure.
+### Terminal — `scripts/video/capture_terminal.py` (drives `bin/blastfall`)
+Deterministic recording of the terminal segment on a real browser-rendered
+terminal (ttyd + Playwright), 1440×810, no typos: the script types the real CLI
+commands and holds on the output. Requires `ttyd` running (`ttyd -p 7777 -W -w
+<repo> ...`) and the app up. The commands run on camera are the real product
+CLI: `./bin/blastfall scan ms@2.1.3` and `./bin/blastfall scan rc@1.2.8`.
 
 ### Browser — click path (script it; no jitter)
 1. Featured chip **`ms@2.1.3`** → Compromise (hops 6). Cards + graph reveal.

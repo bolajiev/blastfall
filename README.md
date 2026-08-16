@@ -128,7 +128,7 @@ app/               demo application
   server.py        FastAPI
   static/          single-page UI (graph reveal animation)
 scripts/up.sh      one-shot bring-up
-scripts/video/     vhs tape + demo query for the submission video
+scripts/video/     capture, voiceover + assembly tooling for the submission video
 docs/VIDEO-SPEC.md 3-minute demo video spec (timeline, capture files, form answers)
 ```
 
