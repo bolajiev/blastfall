@@ -60,3 +60,12 @@ ffmpeg (demo capture), edge-tts (voiceover).
 ## Deployed Project URL
 Not deployed. Runs locally in one command: `./scripts/up.sh` → `http://localhost:8123`
 (demo video and repo show it working end-to-end).
+
+## Anything else the judges should know? (optional field)
+
+Built on real npm metadata: ~112K package versions, ~359K resolved edges from
+the top ~2.5K packages plus their transitive closure. Every DEPENDS_ON edge is
+a concrete version resolved npm-style at publish time, so the graph is
+versioned and temporal. Honest limits: the universe is the dense core, not
+all of npm; typosquats are edit-distance-1 only; resolution is publish-time,
+not lockfile simulation. Reproduce everything with ./scripts/up.sh.
